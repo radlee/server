@@ -1,6 +1,10 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/userModels');
 const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
+const { v4: uuid } = require('uuid');
+
 const HttpError = require('../models/errorModel');
 
 // Unprotected
@@ -32,7 +36,7 @@ const registerUser = async (req, res, next) => {
         return next(new HttpError('User registration failed', 422));
     }
 };
-
+2
 // Unprotected
 const loginUser = async (req, res, next) => {
     try {
@@ -40,7 +44,9 @@ const loginUser = async (req, res, next) => {
         if(!email || !password) {
             return next(new HttpError('Fill in all fiels', 422))
         }
-        const user = await User.findOne({email: newEmail})
+        const newEmail = email.toLowerCase();
+        const user = await User.findOne({email: newEmail});
+          
         if(!user) {
             return next(new HttpError('Invalid Credentials', 422))
         }
@@ -49,7 +55,9 @@ const loginUser = async (req, res, next) => {
             return next(new HttpError('Invalid Credentials', 422))
         }
         const {_id: id, name} = user; 
-        const token = jwt.sign({id, name}, process.env.JWT_SCRET, {expiresIn: '1d'})
+        const token = jwt.sign({id, name}, process.env.JWT_SECRET, {expiresIn: '1d'})
+
+        res.status(200).json({ token, id, name })
 
     } catch (error) {
         return next(new HttpError('Login failed. Please check your credentials.', 422))
@@ -57,19 +65,82 @@ const loginUser = async (req, res, next) => {
 };
 
 const getUser = async (req, res, next) => {
-    res.json('Get User')
+    try {
+        const { id } = req.params;
+        const user = await User.findById(id).select('-password');
+        if(!user) {
+            return next(new HttpError('User Not Found.', 404))
+        }
+        res.status(200).json(user);
+    } catch (error) {
+        return next(new HttpError(error))
+    }
 };
 
 const changeAvatar = async (req, res, next) => {
-    res.json('Change User Avatar')
+    try {
+        if(!req.files.avatar){
+            return next(new HttpError('Please choose an image.', 422));
+        }
+
+        const user = await User.findById(req.user.id);
+
+        if(user.avatar) {
+            fs.unlink(path.join(__dirname, '..', 'uploads', user.avatar), (err) => {
+                if(err) {
+                    return next(new HttpError(err));
+                };
+            });
+        };
+
+        const { avatar } = req.files;
+
+        if(avatar.size > 500000) {
+            return next(new HttpError('Profile picture is too big. Should be less than 500kb'), 422);
+        }
+
+        let fileName;
+        fileName = avatar.name;
+        let splittedFilename = fileName.split('.');
+        let newFilename = splittedFilename[0] + uuid() + '-' +  splittedFilename[splittedFilename.length - 1];
+        avatar.mv(path.join(__dirname, '..', 'uploads', newFilename), async (err)=> {
+            if(err) {
+                return next(new HttpError(err));
+            }
+            const updatedAvatar = await User.findByIdAndUpdate(req.user.id, { avatar: newFilename }, { new: true });
+            if(!updatedAvatar) {
+                return next(new HttpError('Avatar could not be changed.', 422));
+            }
+            res.status(200).json(updatedAvatar);
+        });
+
+    } catch (error) {
+        return next(new HttpError(error));
+    }
 };
 
 const editUser = async (req, res, next) => {
-    res.json('Edit User Details')
+    try {
+        const { name, email, currentPassword, newPassword, confirmNewPassword } = req.body;
+        if(!name || !email || !currentPassword || !newPassword) {
+            return next(new HttpError('Fill in all fields.', 422))
+        }
+        const user = await User.findById(req.user.id);
+        if(!user) {
+            
+        }
+    } catch (error) {
+        return next(new HttpError(error))
+    }
 };
 
 const getAuthors = async (req, res, next) => {
-    res.json('Get Authors')
+    try {
+        const authors = await User.find().select('-password');
+        res.json(authors)
+    } catch (error) {
+        return next(new HttpError(error))
+    }
 };
 
 module.exports = { registerUser, loginUser, getUser, changeAvatar,editUser, getAuthors}
