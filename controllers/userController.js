@@ -102,7 +102,7 @@ const changeAvatar = async (req, res, next) => {
         let fileName;
         fileName = avatar.name;
         let splittedFilename = fileName.split('.');
-        let newFilename = splittedFilename[0] + uuid() + '-' +  splittedFilename[splittedFilename.length - 1];
+        let newFilename = splittedFilename[0] + uuid() + '.' +  splittedFilename[splittedFilename.length - 1];
         avatar.mv(path.join(__dirname, '..', 'uploads', newFilename), async (err)=> {
             if(err) {
                 return next(new HttpError(err));
@@ -123,14 +123,40 @@ const editUser = async (req, res, next) => {
     try {
         const { name, email, currentPassword, newPassword, confirmNewPassword } = req.body;
         if(!name || !email || !currentPassword || !newPassword) {
-            return next(new HttpError('Fill in all fields.', 422))
+            return next(new HttpError('Fill in all fields.', 422));
         }
         const user = await User.findById(req.user.id);
         if(!user) {
-            
+            return next(new HttpError('User Not Found.', 403));
         }
+        // make sure new email does not already exist
+        const emailExists = await User.findOne({email});
+        
+        if(emailExists && (emailExists._id != req.user.id)){
+            return next(new HttpError('Email already exists.', 422));
+        }
+
+        // compare current password to db passoword
+        const validateUserPassword = await bcrypt.compare(currentPassword, user.password);
+        if(!validateUserPassword) {
+            return next(new HttpError('Invalid Current Password', 422));
+        }
+
+        //Compare New Password
+        if(newPassword !== confirmNewPassword) {
+            return next(new HttpError('New Passwords do not match.', 422));
+        }
+
+        //Hash New Password
+        const salt = await bcrypt.genSalt(10);
+        const hashed = await bcrypt.hash(newPassword, salt);
+
+        //Upadate User Info
+        const newInfo = await User.findByIdAndUpdate(req.user.id, { name, email, password: hashed }, { new: true });
+        res.status(200).json(newInfo);
+
     } catch (error) {
-        return next(new HttpError(error))
+        return next(new HttpError(error));
     }
 };
 
@@ -139,7 +165,7 @@ const getAuthors = async (req, res, next) => {
         const authors = await User.find().select('-password');
         res.json(authors)
     } catch (error) {
-        return next(new HttpError(error))
+        return next(new HttpError(error));
     }
 };
 
