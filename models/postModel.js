@@ -5,11 +5,7 @@ const postSchema = new Schema({
     category: { type: String, enum: ['Data Science', 'Web Development', 'General', 'Web Of Things', 'Education', 'Art', 'Photography', 'Entertainment', 'Business', 'Weather'], message: '{VALUE is not supported}' },
     content: { type: String, required: true },
     author: {type: Schema.Types.ObjectId, ref: 'Users'},
-    thumbnail: {
-        data: Buffer, // Store binary data
-        contentType: String, // Store content type (e.g., image/jpeg)
-        filename: String, // Store filename
-    },
+    thumbnail:{ type: String, required: true },
 }, { timestamps: true });
 
 module.exports = model('Post', postSchema);

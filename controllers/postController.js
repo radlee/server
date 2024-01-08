@@ -30,11 +30,7 @@ const createPost = async (req, res, next) => {
                     title, 
                     category, 
                     content, 
-                    thumbnail: {
-                        data: fs.readFileSync(path.join(__dirname, '..', '/uploads', newFilename)),
-                        contentType: thumbnail.mimetype,
-                        filename: newFilename,
-                    }, 
+                    thumbnail: newFilename,
                     author: req.user.id
                 });
                 if(!newPost) {
@@ -60,31 +56,100 @@ const getPosts = async (req, res, next) => {
     const posts = await Post.find().sort({ updatedAt: -1 });
     res.status(200).json(posts);
    } catch (error) {
-    return next(new HttpError(error))
+    return next(new HttpError(error));
    }
 }
 
 // =================================== GET POST BY ID
 // - GET : -> api/posts/:id (UNPROTECTED)
 const getPost = async (req, res, next) => {
-    res.json('Get Single Post')
+    try {
+        const postId = req.params.id;
+        const post = await Post.findById(postId);
+        if(!post) {
+            return next(new HttpError('Post Not Found.', 422));
+        }
+        res.status(200).json(post);
+    } catch (error) {
+        return next(new HttpError(error));
+    }
 }
 // =================================== GET POSTS BY CATEGORY
 // - GET : -> api/posts/categories/:category (UNPROTECTED)
 const getPostsBycat = async (req, res, next) => {
-    res.json('Get Posts by Category')
+    try {
+        const { category } = req.params;
+        const catPosts = await Post.find({ category }).sort({ createdAt: -1 });
+        res.status(200).json(catPosts);
+    } catch (error) {
+        return next(new HttpError(error))
+    }
 }
 
 // =================================== GET POSTS BY AUTHOR
 // - GET : -> api/posts/users/:id (UNPROTECTED)
 const getPostsByAuthor = async (req, res, next) => {
-    res.json('Get Posts By Author')
+    try {
+        const { id } = req.params;
+        const posts = await Post.find({ author: id }).sort({ createdAt: -1 });
+        res.status(200).json(posts);
+    } catch (error) {
+        return next(new HttpError(error))
+    }
 }
 
 // =================================== EDIT POST
 // - PATCH : -> api/posts/:id (PROTECTED)
 const editPost = async (req, res, next) => {
-    res.json('Edit Post')
+    try {
+        let fileName;
+        let newFilename;
+        let updatedPost;
+        const postId = req.params.id;
+        let { title, category, content } = req.body;
+        //ReactQuill has a paragraph opening and closing tag with a break tag in between so the are 11 characters in there already.
+        if(!title || !category || content.length < 12 ){
+            return next(new HttpError('Fill in all fields.', 422));
+        }
+        if(!req.files) {
+            updatedPost = await Post.findByIdAndDelete(postId, { title, category, content }, { new: true});
+        } else {
+            //Get Old Post from DB
+            const oldPost = await Post.findById(postId);
+            //Delete Old Thumbnail from DB
+            fs.unlink(path.join(__dirname, '..', 'uploads', oldPost.thumbnail), async (err) => {
+                if(err) {
+                    return next(new HttpError(err));
+                } 
+            });
+
+             //Upload new Thumbnail
+             const { thumbnail } = req.files;
+             //Check file sixe
+             if(thumbnail.size > 2000000) {
+                 return next(new HttpError('Thumbnail too big. Should be less than 2mb.'))
+             }
+             fileName = thumbnail.name;
+             let splittedFilename = fileName.split('.');
+             newFilename = splittedFilename[0] + uuid() + '.' + splittedFilename[splittedFilename.length -1]
+             thumbnail.mv(path.join(__dirname, '..', 'uploads', newFilename), async(err) => {
+                 if(err) {
+                     return next(new HttpError(err))
+                 }
+             });
+
+             updatedPost = await Post.findByIdAndUpdate(postId, { title, category, content, thumbnail: newFilename }, { new: true });
+
+
+             if(!updatedPost) {
+                return next(new HttpError('Could not update Post.', 400));
+             }
+
+             res.status(200).json(updatedPost);
+        }
+    } catch (error) {
+        return next(new HttpError(error))
+    }
 }
 
 // =================================== DELETE POST
