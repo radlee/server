@@ -4,6 +4,7 @@ const HttpError = require('../models/errorModel');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuid } = require('uuid');
+const { error } = require('console');
 
 
 // =================================== CREATE A POST
@@ -112,10 +113,12 @@ const editPost = async (req, res, next) => {
             return next(new HttpError('Fill in all fields.', 422));
         }
         if(!req.files) {
-            updatedPost = await Post.findByIdAndDelete(postId, { title, category, content }, { new: true});
+            updatedPost = await Post.findByIdAndUpdate(postId, { title, category, content }, { new: true});
         } else {
             //Get Old Post from DB
             const oldPost = await Post.findById(postId);
+            if(req.user.id == oldPost.author) {
+         
             //Delete Old Thumbnail from DB
             fs.unlink(path.join(__dirname, '..', 'uploads', oldPost.thumbnail), async (err) => {
                 if(err) {
@@ -123,30 +126,32 @@ const editPost = async (req, res, next) => {
                 } 
             });
 
-             //Upload new Thumbnail
-             const { thumbnail } = req.files;
-             //Check file sixe
-             if(thumbnail.size > 2000000) {
-                 return next(new HttpError('Thumbnail too big. Should be less than 2mb.'))
-             }
-             fileName = thumbnail.name;
-             let splittedFilename = fileName.split('.');
-             newFilename = splittedFilename[0] + uuid() + '.' + splittedFilename[splittedFilename.length -1]
-             thumbnail.mv(path.join(__dirname, '..', 'uploads', newFilename), async(err) => {
-                 if(err) {
-                     return next(new HttpError(err))
-                 }
-             });
+            //Upload new Thumbnail
+            const { thumbnail } = req.files;
+            //Check file sixe
+            if(thumbnail.size > 2000000) {
+                return next(new HttpError('Thumbnail too big. Should be less than 2mb.'))
+            }
+            fileName = thumbnail.name;
+            let splittedFilename = fileName.split('.');
+            newFilename = splittedFilename[0] + uuid() + '.' + splittedFilename[splittedFilename.length -1]
+            thumbnail.mv(path.join(__dirname, '..', 'uploads', newFilename), async(err) => {
+                if(err) {
+                    return next(new HttpError(err))
+                }
+            })
 
-             updatedPost = await Post.findByIdAndUpdate(postId, { title, category, content, thumbnail: newFilename }, { new: true });
-
-
-             if(!updatedPost) {
-                return next(new HttpError('Could not update Post.', 400));
-             }
-
-             res.status(200).json(updatedPost);
+            updatedPost = await Post.findByIdAndUpdate(postId, { title, category, content, thumbnail: newFilename }, { new: true })
         }
+    }
+
+    
+    if(!updatedPost) {
+        return next(new HttpError('Could not update Post.', 400));
+     }
+
+     res.status(200).json(updatedPost);
+
     } catch (error) {
         return next(new HttpError(error))
     }
@@ -155,7 +160,35 @@ const editPost = async (req, res, next) => {
 // =================================== DELETE POST
 // - DELETE : -> api/posts/:id (PROTECTED)
 const deletePost = async (req, res, next) => {
-    res.json('Delete Post')
+    try {
+        const postId = req.params.id;
+        if(!postId) {
+            return next(new HttpError('Post Not Available'));
+        }
+        const post = await Post.findById(postId);
+        const fileName = post?.thumbnail;
+        if(req.user.id == post.author) {
+
+        //Delete Thumbnail from Uploads Folder
+        fs.unlink(path.join(__dirname, '..', 'uploads', fileName), async(err) => {
+            if(err) {
+                return runInNewContext(new HttpError(err))
+            } else {
+                await Post.findOneAndDelete(postId);
+
+                //Find user and Reduce Post count by 1
+                const currentUser = await User.findById(req.user.id);
+                const userPostCount = currentUser?.posts -1;
+                await User.findByIdAndDelete(req.user.id, {posts: userPostCount })
+                res.json(`Post ${postId} deleted successfully.`)
+            }
+        }) 
+    } else {
+        return next(new HttpError('Post could not be deleted.', 403));
+    }
+    } catch (error) {
+        return next(new HttpError(error))
+    }
 }
 
 module.exports = { createPost, getPosts, getPost, getPostsBycat, getPostsByAuthor, editPost, deletePost }
