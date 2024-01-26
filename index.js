@@ -24,5 +24,5 @@ app.use(notFound)
 app.use(errorHandler)
 
 connect(process.env.MONGO_URI).then(app.listen(PORT, () => 
-console.log(`Running on PORT: ${PORT}\nDatabase Connected Successfully!!`)))
+console.log(`Running on PORT: ${PORT}\nDatabase Connected Successfully!`)))
 .catch(error => {console.log(error)})
