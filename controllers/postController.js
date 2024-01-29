@@ -13,41 +13,41 @@ const cloudinary = require('../utils/cloudinary');
 const createPost = async (req, res, next) => {
     try {
         let { title, category, content } = req.body;
-        if(!title || !content || !category || !req.files ) {
-            return next(new HttpError('Fill in all field and choose thumbnail.', 422));
-        }
-        const { thumbnail } = req.files;
-        //Check the File Size
-        if(thumbnail.size > 20000000) {
-            return next(new HttpError('Thumbnail too big. File should be less than 2mb.'));
-        }
-        let fileName = thumbnail.name;
-        let splittedFilename = fileName.split('.');
-        let newFilename = splittedFilename[0] + uuid() + '.' + splittedFilename[splittedFilename.length -1]
-        thumbnail.mv(path.join(__dirname, '..', '/uploads', newFilename), async (err) => {
-            if(err) {
-                return next(new HttpError(err));
-            } else {
-                const newPost = await Post.create({
-                    title, 
-                    category, 
-                    content, 
-                    thumbnail: newFilename,
-                    author: req.user.id
-                });
-                if(!newPost) {
-                    return next(new HttpError("Post couldn't be created.", 422));
-                }
-                //Find User and increase Post Count
-                const currentUser = await User.findById(req.user.id);
-                const userPostCount = currentUser.posts + 1;
-                await User.findByIdAndUpdate(req.user.id,  { posts: userPostCount })
 
-                res.status(201).json(newPost)
-            }
-        })
+        if (!title || !content || !category || !req.file) {
+            return next(new HttpError('Fill in all fields and choose a thumbnail.', 422));
+        }
+
+        const thumbnail = req.file;
+
+        // Check the File Size
+        if (thumbnail.size > 20000000) {
+            return next(new HttpError('Thumbnail too big. File should be less than 20mb.'));
+        }
+
+        const newPost = await Post.create({
+            title,
+            category,
+            content,
+            thumbnail: {
+                public_id: 'temp',  // You may need to replace this with actual cloudinary details
+                url: 'temp'
+            },
+            author: req.user.id
+        });
+
+        if (!newPost) {
+            return next(new HttpError("Post couldn't be created.", 422));
+        }
+
+        // Find User and increase Post Count
+        const currentUser = await User.findById(req.user.id);
+        const userPostCount = currentUser.posts + 1;
+        await User.findByIdAndUpdate(req.user.id, { posts: userPostCount })
+
+        res.status(201).json(newPost);
     } catch (error) {
-        return next(new HttpError(error))
+        return next(new HttpError(error));
     }
 }
 
