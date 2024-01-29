@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs');
 const { v4: uuid } = require('uuid');
 const { error } = require('console');
+const cloudinary = require('../utils/cloudinary');
 
 
 // =================================== CREATE A POST
