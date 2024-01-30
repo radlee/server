@@ -14,7 +14,7 @@ const multerStorage = multer.diskStorage({
 
 
 const multerFilter = (req, res, cb) => {
-    if(file.mimetype.startsWith('thumbnail')) {
+    if(file.mimetype.startsWith('image')) {
         cb(null, true)
     } else {
         cb({
@@ -30,14 +30,18 @@ const uploadPhoto = multer({
 });
 
 const blogImgResize = async(req, res, next) => {
-    if(!register.files) return next();
+    if(!req.files) return next();
     await Promise.all(
         req.files.map( async (file) => {
-            await sharp(file.path).resize(300, 300).toFormat('jpeg').jpeg({quality: 90}).toFile(`public/image/blogs/${file.filename}`)
+            await sharp(file.path)
+            .resize(300, 300)
+            .toFormat('jpeg')
+            .jpeg({ quality: 90 })
+            .toFile(`public/image/blogs/${file.filename}`);
         })
-    )
+    );
 
     next();
-}
+};
 
 module.exports = { uploadPhoto, blogImgResize  }
