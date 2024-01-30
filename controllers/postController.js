@@ -10,30 +10,55 @@ const cloudinary = require('../utils/cloudinary');
 
 // =================================== CREATE A POST
 // - POST : -> api/posts (PROTECTED)
+const uploadToCloudinary = async (file) => {
+    try {
+        console.log(file);
+
+        if (!file.tempFilePath) {
+            throw new HttpError('Temp file path is missing in the uploaded file.', 500);
+        }
+
+        const result = await cloudinary.uploader.upload(file.tempFilePath, {
+            folder: 'dhdc57kw9',
+            use_filename: true,
+            unique_filename: false,
+            resource_type: 'auto',
+        });
+
+        console.log(result);
+
+        return { imageUrl: result.secure_url };
+    } catch (error) {
+        console.error(error);
+        throw new HttpError('Error uploading to Cloudinary.', 500);
+    }
+};
+
+// =================================== CREATE A POST
+// - POST : -> api/posts (PROTECTED)
 const createPost = async (req, res, next) => {
     try {
         let { title, category, content } = req.body;
-
-        if (!title || !content || !category || !req.file) {
-            return next(new HttpError('Fill in all fields and choose a thumbnail.', 422));
+        if (!title || !content || !category || !req.files) {
+            return next(new HttpError('Fill in all field and choose thumbnail.', 422));
         }
+        const { thumbnail } = req.files;
 
-        const thumbnail = req.file;
+        // Call the uploadToCloudinary function to handle the Cloudinary upload
+        const cloudinaryResponse = await uploadToCloudinary(thumbnail);
 
-        // Check the File Size
-        if (thumbnail.size > 20000000) {
-            return next(new HttpError('Thumbnail too big. File should be less than 20mb.'));
-        }
+        // Extract Cloudinary image URL from the response
+        const cloudinaryImageUrl = cloudinaryResponse.imageUrl;
+
+        // Assuming setThumbnail is a function to set the thumbnail in your state
+        setThumbnail(cloudinaryImageUrl);
 
         const newPost = await Post.create({
             title,
             category,
             content,
-            thumbnail: {
-                public_id: 'temp',  // You may need to replace this with actual cloudinary details
-                url: 'temp'
-            },
-            author: req.user.id
+            thumbnail: cloudinaryImageUrl,
+            author: req.user.id,
         });
 
         if (!newPost) {
@@ -43,7 +68,7 @@ const createPost = async (req, res, next) => {
         // Find User and increase Post Count
         const currentUser = await User.findById(req.user.id);
         const userPostCount = currentUser.posts + 1;
-        await User.findByIdAndUpdate(req.user.id, { posts: userPostCount })
+        await User.findByIdAndUpdate(req.user.id, { posts: userPostCount });
 
         res.status(201).json(newPost);
     } catch (error) {
