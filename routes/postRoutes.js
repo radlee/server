@@ -3,10 +3,11 @@ const singleUpload = require ('../utils/multer');
 
 const  { createPost , getPosts, getPost, getPostsBycat, getPostsByAuthor, editPost, deletePost } = require('../controllers/postController')
 const authMiddleware = require('../middlewares/authMiddleware');
+const {uploadPhoto, blogImgResize} = require('../middlewares/uploadImages');
 
 const router = Router();
 
-router.post('/', authMiddleware, createPost);
+router.post('/', authMiddleware, createPost, uploadPhoto.array('thumbnail', 10), blogImgResize);
 router.get('/', getPosts);
 router.get('/:id', getPost);
 router.get('/categories/:category', getPostsBycat);
