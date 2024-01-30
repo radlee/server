@@ -6,6 +6,9 @@ const fs = require('fs');
 const { v4: uuid } = require('uuid');
 const { error } = require('console');
 
+  const uploadImages = async (req, res) => {
+    console.log("Them Reqs -- ", req.files);
+};
 
 // =================================== CREATE A POST
 // - POST : -> api/posts (PROTECTED)
@@ -16,6 +19,8 @@ const createPost = async (req, res, next) => {
             return next(new HttpError('Fill in all field and choose thumbnail.', 422));
         }
         const { thumbnail } = req.files;
+
+        console.log("Them Thumb -- ", thumbnail);
         //Check the File Size
         if(thumbnail.size > 20000000) {
             return next(new HttpError('Thumbnail too big. File should be less than 2mb.'));
@@ -191,4 +196,4 @@ const deletePost = async (req, res, next) => {
     }
 }
 
-module.exports = { createPost, getPosts, getPost, getPostsBycat, getPostsByAuthor, editPost, deletePost }
+module.exports = { createPost, uploadImages, getPosts, getPost, getPostsBycat, getPostsByAuthor, editPost, deletePost }
