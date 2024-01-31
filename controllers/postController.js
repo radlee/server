@@ -6,9 +6,6 @@ const fs = require('fs');
 const { v4: uuid } = require('uuid');
 const { error } = require('console');
 
-  const uploadImages = async (req, res) => {
-    console.log("Them Reqs -- ", req.files);
-};
 
 // =================================== CREATE A POST
 // - POST : -> api/posts (PROTECTED)
@@ -196,4 +193,4 @@ const deletePost = async (req, res, next) => {
     }
 }
 
-module.exports = { createPost, uploadImages, getPosts, getPost, getPostsBycat, getPostsByAuthor, editPost, deletePost }
+module.exports = { createPost, getPosts, getPost, getPostsBycat, getPostsByAuthor, editPost, deletePost }

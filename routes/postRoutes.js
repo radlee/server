@@ -9,13 +9,12 @@ const  {
     getPostsByAuthor, 
     editPost, 
     deletePost, 
-    uploadImages} = require('../controllers/postController')
+    } = require('../controllers/postController')
 const authMiddleware = require('../middlewares/authMiddleware');
-const {uploadPhoto, blogImgResize} = require('../middlewares/uploadImages');
 
 const router = Router();
 
-router.post('/', authMiddleware, createPost, uploadPhoto.array('images', 10), blogImgResize, uploadImages);
+router.post('/', authMiddleware, createPost);
 router.get('/', getPosts);
 router.get('/:id', getPost);
 router.get('/categories/:category', getPostsBycat);
