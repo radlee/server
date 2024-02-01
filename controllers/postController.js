@@ -8,49 +8,43 @@ const { error } = require('console');
 
 
 // =================================== CREATE A POST
-// - POST : -> api/posts (PROTECTED)
 const createPost = async (req, res, next) => {
+    console.log('Request Body:', req.body);
     try {
-        let { title, category, content } = req.body;
-        if(!title || !content || !category || !req.files ) {
-            return next(new HttpError('Fill in all field and choose thumbnail.', 422));
-        }
-        const { thumbnail } = req.files;
+        let { title, category, content, thumbnail } = req.body;
+        // if (!title || !content || !category || !req.files) {
+        //     return next(new HttpError('Fill in all field and choose thumbnail.', 422));
+        // }
+        // const { thumbnail } = req.files;
 
-        console.log("Them Thumb -- ", thumbnail);
-        //Check the File Size
-        if(thumbnail.size > 20000000) {
-            return next(new HttpError('Thumbnail too big. File should be less than 2mb.'));
-        }
-        let fileName = thumbnail.name;
-        let splittedFilename = fileName.split('.');
-        let newFilename = splittedFilename[0] + uuid() + '.' + splittedFilename[splittedFilename.length -1]
-        thumbnail.mv(path.join(__dirname, '..', '/uploads', newFilename), async (err) => {
-            if(err) {
-                return next(new HttpError(err));
-            } else {
-                const newPost = await Post.create({
-                    title, 
-                    category, 
-                    content, 
-                    thumbnail: newFilename,
-                    author: req.user.id
-                });
-                if(!newPost) {
-                    return next(new HttpError("Post couldn't be created.", 422));
-                }
-                //Find User and increase Post Count
-                const currentUser = await User.findById(req.user.id);
-                const userPostCount = currentUser.posts + 1;
-                await User.findByIdAndUpdate(req.user.id,  { posts: userPostCount })
+        // Check the File Size
+        // if (thumbnail.size > 20000000) {
+        //     return next(new HttpError('Thumbnail too big. File should be less than 2mb.'));
+        // }
 
-                res.status(201).json(newPost)
-            }
-        })
+        const newPost = await Post.create({
+            title,
+            category,
+            content,
+            thumbnail,
+            author: req.user.id
+        });
+
+        if (!newPost) {
+            return next(new HttpError("Post couldn't be created.", 422));
+        }
+
+        // Find User and increase Post Count
+        const currentUser = await User.findById(req.user.id);
+        const userPostCount = currentUser.posts + 1;
+        await User.findByIdAndUpdate(req.user.id, { posts: userPostCount });
+
+        res.status(201).json(newPost);
     } catch (error) {
-        return next(new HttpError(error))
+        return next(new HttpError(error));
     }
-}
+};
+
 
 // =================================== GET ALL POST
 // - GET : -> api/posts (UNPROTECTED)
