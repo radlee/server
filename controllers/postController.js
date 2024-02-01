@@ -99,17 +99,15 @@ const getPostsByAuthor = async (req, res, next) => {
 // - PATCH : -> api/posts/:id (PROTECTED)
 const editPost = async (req, res, next) => {
     try {
-        let fileName;
-        let newFilename;
         let updatedPost;
         const postId = req.params.id;
-        let { title, category, content } = req.body;
+        let { title, category, content, thumbnail } = req.body;
         //ReactQuill has a paragraph opening and closing tag with a break tag in between so the are 11 characters in there already.
         if(!title || !category || content.length < 12 ){
             return next(new HttpError('Fill in all fields.', 422));
         }
         if(!req.files) {
-            updatedPost = await Post.findByIdAndUpdate(postId, { title, category, content }, { new: true});
+            updatedPost = await Post.findByIdAndUpdate(postId, { title, category, content, thumbnail }, { new: true});
         } else {
             //Get Old Post from DB
             const oldPost = await Post.findById(postId);
@@ -122,22 +120,7 @@ const editPost = async (req, res, next) => {
                 } 
             });
 
-            //Upload new Thumbnail
-            const { thumbnail } = req.files;
-            //Check file sixe
-            if(thumbnail.size > 2000000) {
-                return next(new HttpError('Thumbnail too big. Should be less than 2mb.'))
-            }
-            fileName = thumbnail.name;
-            let splittedFilename = fileName.split('.');
-            newFilename = splittedFilename[0] + uuid() + '.' + splittedFilename[splittedFilename.length -1]
-            thumbnail.mv(path.join(__dirname, '..', 'uploads', newFilename), async(err) => {
-                if(err) {
-                    return next(new HttpError(err))
-                }
-            })
-
-            updatedPost = await Post.findByIdAndUpdate(postId, { title, category, content, thumbnail: newFilename }, { new: true })
+            updatedPost = await Post.findByIdAndUpdate(postId, { title, category, content, thumbnail }, { new: true })
         }
     }
 
