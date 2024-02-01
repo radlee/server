@@ -93,26 +93,17 @@ const changeAvatar = async (req, res, next) => {
             });
         };
 
-        const { avatar } = req.files;
+        // const { avatar } = req.files;
 
-        if(avatar.size > 500000) {
-            return next(new HttpError('Profile picture is too big. Should be less than 500kb'), 422);
-        }
+        // if(avatar.size > 500000) {
+        //     return next(new HttpError('Profile picture is too big. Should be less than 500kb'), 422);
+        // }
 
-        let fileName;
-        fileName = avatar.name;
-        let splittedFilename = fileName.split('.');
-        let newFilename = splittedFilename[0] + uuid() + '.' +  splittedFilename[splittedFilename.length - 1];
-        avatar.mv(path.join(__dirname, '..', 'uploads', newFilename), async (err)=> {
-            if(err) {
-                return next(new HttpError(err));
-            }
-            const updatedAvatar = await User.findByIdAndUpdate(req.user.id, { avatar: newFilename }, { new: true });
+        const updatedAvatar = await User.findByIdAndUpdate(req.user.id, { avatar: user.avatar }, { new: true });
             if(!updatedAvatar) {
                 return next(new HttpError('Avatar could not be changed.', 422));
             }
             res.status(200).json(updatedAvatar);
-        });
 
     } catch (error) {
         return next(new HttpError(error));
