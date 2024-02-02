@@ -9,7 +9,7 @@ const { error } = require('console');
 
 // =================================== CREATE A POST
 const createPost = async (req, res, next) => {
-    console.log('Request Body:', req.body);
+
     try {
         let { title, category, content, thumbnail } = req.body;
         // if (!title || !content || !category || !req.files) {
