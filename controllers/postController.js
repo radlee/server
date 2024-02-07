@@ -51,11 +51,11 @@ const createPost = async (req, res, next) => {
 const getPosts = async (req, res, next) => {
     try {
         const page_size = 10;
-        const page = parseInt(req.query.page || '0');
+        const page = parseInt(req.query.page || '1');
         const total = await Post.countDocuments({});
         const posts = await Post.find({})
         .limit(page_size)
-        .skip(page_size * page)
+        .skip(page_size * (page  - 1))
         .sort({ updatedAt: -1 });
         res.json({total, posts});
     } catch (error) {
