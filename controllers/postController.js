@@ -50,9 +50,14 @@ const createPost = async (req, res, next) => {
 // - GET : -> api/posts (UNPROTECTED)
 const getPosts = async (req, res, next) => {
     try {
-     const posts = await Post.find().sort({ updatedAt: -1 });
-     console.log('Posts from postController: DB :: ', posts )
-     res.status(200).json(posts);
+        const page_size = 10;
+        const page = parseInt(req.query.page || '0');
+        const total = await Post.countDocuments({});
+        const posts = await Post.find({})
+        .limit(page_size)
+        .skip(page_size * page)
+        .sort({ updatedAt: 1 });
+        res.json({total, posts});
     } catch (error) {
      return next(new HttpError(error));
     }
