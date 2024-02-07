@@ -56,7 +56,7 @@ const getPosts = async (req, res, next) => {
         const posts = await Post.find({})
         .limit(page_size)
         .skip(page_size * page)
-        .sort({ updatedAt: 1 });
+        .sort({ updatedAt: -1 });
         res.json({total, posts});
     } catch (error) {
      return next(new HttpError(error));
