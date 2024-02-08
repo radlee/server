@@ -47,21 +47,21 @@ const createPost = async (req, res, next) => {
 
 
 // =================================== GET ALL POST
-// - GET : -> api/posts (UNPROTECTED)
 const getPosts = async (req, res, next) => {
     try {
-        const page_size = 10;
-        const page = parseInt(req.query.page || '1');
+        const page_size = 9;
+        const page = parseInt(req.query.page, 10) || 1; // Parse as integer and default to 1 if undefined
         const total = await Post.countDocuments({});
         const posts = await Post.find({})
-        .limit(page_size)
-        .skip(page_size * (page  - 1))
-        .sort({ updatedAt: -1 });
-        res.json({total, posts});
+            .sort({ createdAt: -1 })  // Sort by createdAt in descending order
+            .limit(page_size)
+            .skip(page_size * (page - 1)); // Adjusted skip calculation
+
+        res.json({ total, posts });
     } catch (error) {
-     return next(new HttpError(error));
+        return next(new HttpError(error));
     }
- }
+};
 
 // =================================== GET POST BY ID
 // - GET : -> api/posts/:id (UNPROTECTED)
