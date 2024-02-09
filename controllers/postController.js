@@ -53,7 +53,7 @@ const getPosts = async (req, res, next) => {
         const page = parseInt(req.query.page, 10) || 1; // Parse as integer and default to 1 if undefined
         const total = await Post.countDocuments({});
         const posts = await Post.find({})
-            .sort({ createdAt: -1 })  // Sort by createdAt in descending order
+            .sort({ updatedAt: -1 })  // Sort by createdAt in descending order
             .limit(page_size)
             .skip(page_size * (page - 1)); // Adjusted skip calculation
 
@@ -147,33 +147,34 @@ const editPost = async (req, res, next) => {
 const deletePost = async (req, res, next) => {
     try {
         const postId = req.params.id;
-        if(!postId) {
-            return next(new HttpError('Post Not Available'));
+        if (!postId) {
+            return next(new HttpError('Post ID not provided'));
         }
+
         const post = await Post.findById(postId);
-        const fileName = post?.thumbnail;
-        if(req.user.id == post.author) {
+        if (!post) {
+            return next(new HttpError('Post not found', 404));
+        }
 
-        //Delete Thumbnail from Uploads Folder
-        fs.unlink(path.join(__dirname, '..', 'uploads', fileName), async(err) => {
-            if(err) {
-                return runInNewContext(new HttpError(err))
-            } else {
-                await Post.findOneAndDelete(postId);
+        if (req.user.id !== post.author.toString()) {
+            return next(new HttpError('You are not authorized to delete this post', 403));
+        }
 
-                //Find user and Reduce Post count by 1
-                const currentUser = await User.findById(req.user.id);
-                const userPostCount = currentUser?.posts -1;
-                await User.findByIdAndDelete(req.user.id, {posts: userPostCount })
-                res.json(`Post ${postId} deleted successfully.`)
-            }
-        }) 
-    } else {
-        return next(new HttpError('Post could not be deleted.', 403));
-    }
+        // Delete the post
+        await post.deleteOne();
+
+        // Find user and reduce Post count by 1
+        const currentUser = await User.findById(req.user.id);
+        if (currentUser) {
+            currentUser.posts -= 1;
+            await currentUser.save();
+        }
+
+        res.json(`Post ${postId} deleted successfully.`);
     } catch (error) {
-        return next(new HttpError(error))
+        return next(new HttpError(`Could not delete post: ${error.message}`));
     }
-}
+};
+
 
 module.exports = { createPost, getPosts, getPost, getPostsBycat, getPostsByAuthor, editPost, deletePost }
