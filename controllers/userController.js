@@ -36,7 +36,7 @@ const registerUser = async (req, res, next) => {
         return next(new HttpError('User registration failed', 422));
     }
 };
-2
+
 // Unprotected
 const loginUser = async (req, res, next) => {
     try {
