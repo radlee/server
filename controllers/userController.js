@@ -146,4 +146,14 @@ const getAuthors = async (req, res, next) => {
     }
 };
 
-module.exports = { registerUser, loginUser, getUser, changeAvatar,editUser, getAuthors}
+const logoutUser = async (req, res, next) => {
+    try {
+        // On logout, simply clear the client-side token
+        res.status(200).json({ message: 'User logged out successfully' });
+    } catch (error) {
+        return next(new HttpError('Logout failed', 500));
+    }
+};
+
+
+module.exports = { registerUser, loginUser, getUser, changeAvatar,editUser, getAuthors, logoutUser }
