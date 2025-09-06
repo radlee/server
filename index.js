@@ -19,7 +19,7 @@ const corsOptions = {
   credentials: true,
   origin:
     process.env.NODE_ENV === 'production'
-      ? 'hhttps://radblok.vercel.app'
+      ? 'https://radblok-mthf91gvg-radlees-projects.vercel.app'
       : 'http://localhost:3000',
 };
 app.use(cors(corsOptions));
