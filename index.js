@@ -15,13 +15,23 @@ app.use(express.json({ extended: true }));
 app.use(express.urlencoded({ extended: true }));
 
 // Determine CORS origin based on the environment
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://radblok-radlees-projects.vercel.app',
+];
+
 const corsOptions = {
   credentials: true,
-  origin:
-    process.env.NODE_ENV === 'production'
-      ? 'https://radblok-radlees-projects.vercel.app'
-      : 'http://localhost:3000',
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
 };
+
 app.use(cors(corsOptions));
 
 app.use(upload());
