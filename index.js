@@ -18,7 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://radblok-radlees-projects.vercel.app',
+  'https://radblok.pages.dev',
 ];
 
 const corsOptions = {
